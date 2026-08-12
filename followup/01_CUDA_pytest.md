@@ -76,3 +76,18 @@ python -m pytest tests/ --ignore=tests/autoscale -p no:cacheprovider \
 
 Task 25 新增的真实 PEFT 包装、PP checkpoint 和 DP reshard CUDA 用例全部通过。
 GPU 可见全量测试没有发现由 Mixture-of-LoRA 引入的新失败。
+
+## 7. 合并最新 main 后的复核
+
+开发分支合并 `main@050ab04` 后，在相同的完整后端环境中重新执行回归测试。合并提交为
+`b363c18`，随后使用 `5d86614` 补齐上游新增 S3 loader 测试所需的 Mixture 参数桩。
+
+| 检查 | 结果 |
+|---|---|
+| `pytest tests/` | 1568 passed、12 skipped |
+| Task 25 Megatron CUDA 定向测试 | 61 passed，179.96s |
+| `tests/test_s3_model_loader.py` | 51 passed |
+| 全参、单 LoRA、Mixture-LoRA 两步 BF16 训练 | 三组均通过 |
+
+全量 pytest 首次运行时，一个分布式测试使用的随机端口被占用；对应测试文件单独重跑为
+3 passed。该问题未复现，最终结果未发现由本次合并或 Mixture-of-LoRA 引入的回归。

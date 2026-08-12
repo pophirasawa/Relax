@@ -14,11 +14,13 @@
 
 ## 补充验收
 
-- CUDA：3 个 Task 25 CUDA 用例全部通过。
+- CUDA：原始验收的 3 个定向用例全部通过；合并最新 `main` 后，Task 25 Megatron CUDA
+  测试为 61 passed。
 - Checkpoint：从 iteration 49 恢复完整训练和数据状态，继续完成 step 50–52。
 - 性能：全参、单 LoRA、Mixture-LoRA 统一统计 step 2–11。
 - 总览：[`followup/README.md`](followup/README.md)
 - 吞吐数据：[`followup/results/three-way-window-2-11.json`](followup/results/three-way-window-2-11.json)
+- Actor 阶段显存：[`followup/results/actor-memory-window-2-11.json`](followup/results/actor-memory-window-2-11.json)
 
 ## 图片
 
@@ -45,3 +47,7 @@
 ### Mixture 性能变化
 
 ![Mixture 性能变化](followup/results/figures/perf-overhead-breakdown.png)
+
+### Actor 阶段与端到端显存
+
+![Actor 阶段与端到端显存](followup/results/figures/perf-memory-phases.png)

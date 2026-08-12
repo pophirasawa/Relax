@@ -172,22 +172,28 @@ def plot_overhead_breakdown(runs, lo, hi, out_path):
     single = runs[1]
     mixture = runs[2]
     changes = [
-        ("Step time", mean(mixture, "perf/step_time") / mean(single, "perf/step_time") - 1),
-        ("Rollout time", mean(mixture, "perf/rollout_time") / mean(single, "perf/rollout_time") - 1),
-        ("Actor train time", mean(mixture, "perf/actor_train_time") / mean(single, "perf/actor_train_time") - 1),
+        ("Step time", mean(mixture, "perf/step_time") / mean(single, "perf/step_time") - 1, False),
+        ("Rollout time", mean(mixture, "perf/rollout_time") / mean(single, "perf/rollout_time") - 1, False),
+        ("Actor train time", mean(mixture, "perf/actor_train_time") / mean(single, "perf/actor_train_time") - 1, False),
         (
             "Response tok/s",
             mean(mixture, "perf/step_resp_token_per_s") / mean(single, "perf/step_resp_token_per_s") - 1,
+            True,
         ),
         (
             "Actor train tok/s",
             mean(mixture, "perf/actor_train_tok_per_s") / mean(single, "perf/actor_train_tok_per_s") - 1,
+            True,
         ),
     ]
     ax = axes[1]
     names = [item[0] for item in changes]
     percentages = [item[1] * 100 for item in changes]
-    colors = ["#c0392b" if value > 0 and "tok/s" not in name else "#2980b9" for name, value in zip(names, percentages)]
+    degradations = [
+        (value > 0) if not higher_better else (value < 0)
+        for _, value, higher_better in changes
+    ]
+    colors = ["#c0392b" if degraded else "#2980b9" for degraded in degradations]
     bars = ax.barh(names, percentages, color=colors)
     ax.axvline(0, color="#2c3e50", linewidth=0.8)
     for bar, value in zip(bars, percentages):
@@ -201,7 +207,7 @@ def plot_overhead_breakdown(runs, lo, hi, out_path):
             color="white",
         )
     ax.set_xlabel("Mixture-LoRA vs Single-LoRA")
-    ax.set_title("Relative change")
+    ax.set_title("Relative change (red = regression)")
     ax.grid(axis="x", alpha=0.25, linewidth=0.5)
 
     fig.suptitle(f"Task 25 performance change - step {lo}-{hi}", fontsize=13)

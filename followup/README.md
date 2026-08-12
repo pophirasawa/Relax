@@ -40,12 +40,21 @@ math、GRPO、BF16 和 colocate，硬件规格为 8×A800 80GB。
 | actor train time (s) | 78.61 | 76.92 | 89.91 |
 | response 吞吐 (tok/s) | 3964.85 | 3952.03 | 3075.76 |
 | actor train 吞吐 (tok/s) | 11293.67 | 11511.07 | 9851.78 |
+| actor 阶段系统显存均值 (MiB/GPU) | 38,259 | 26,669 | 29,158 |
+| actor 阶段系统显存 P95 (MiB/GPU) | 46,391 | 30,100 | 32,190 |
+| actor 阶段系统显存峰值 (MiB/GPU) | 47,550 | 31,258 | 33,678 |
 | step 2–11 系统峰值显存 (MiB) | 61,632 | 61,656 | 63,494 |
 | 平均 response 长度 (token) | 6787.07 | 6767.17 | 6773.76 |
 
 单 LoRA 与全参的 step time 相差 0.06%，该窗口内两者系统吞吐接近。当前 dense
 Mixture 路径比单 LoRA 慢 28.56%，其中 rollout 贡献 66.8% 的额外 step time。
 三组平均 response 长度相差不到 0.3%，生成工作量处于同一水平。
+
+Actor 阶段的 NVML 系统显存均值显示，单 LoRA 和 Mixture-LoRA 相比全参分别减少
+11,590 MiB（30.3%）和 9,101 MiB（23.8%）。三组统一设置
+`sglang-mem-fraction-static=0.7`，rollout 会预留相近大小的静态显存池，KV cache 和
+生成 batch 又会把显存推到该容量附近，因此端到端峰值仍接近 60–62 GiB。两种指标回答不同问题：
+actor 阶段统计反映训练时的显存收益，端到端峰值用于判断作业是否会 OOM。
 
 Mixture 的结果反映当前实现成本：训练端与 rollout 端都会计算全部四个 expert，再按
 Top-K 权重组合输出。后续 grouped sparse 或融合 kernel 可以在不改变路由语义和参数
@@ -57,7 +66,9 @@ Top-K 权重组合输出。后续 grouped sparse 或融合 kernel 可以在不�
 - Step 0 的初始化开销不进入窗口。
 - 窗口内没有 checkpoint 保存。
 - 耗时与吞吐来自 TensorBoard 相同 step 下标。
-- 显存根据 TensorBoard wall time 过滤同期 NVML 采样，再取所有 GPU 的单卡最大值。
+- Actor 阶段显存根据 TensorBoard 的 actor train 和权重同步耗时重建阶段区间，再汇总
+  同期 5 秒 NVML 采样的均值、P95 和峰值。
+- 端到端显存取统一 step 窗口内所有 GPU 的单卡最大值。
 - 三组使用相同模型、数据、batch、最大 response 长度、并行方式和显存配额。
 
 该窗口用于验收场景的短时性能估计。单次十步窗口无法替代重复实验或长程性能均值，
